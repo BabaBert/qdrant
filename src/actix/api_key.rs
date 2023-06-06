@@ -1,73 +1,82 @@
 use std::future::{ready, Ready};
 
-use actix_web::body::{BoxBody, EitherBody};
-use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::{Error, HttpResponse};
-use constant_time_eq::constant_time_eq;
+use actix_web::body::EitherBody;
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
+use actix_web::error::Error;
 use futures_util::future::LocalBoxFuture;
+use futures_util::Future;
 
-pub struct ApiKey {
-    api_key: String,
+use super::api_key_middleware::full_api_key_middleware::FullApiKeyMiddleware;
+use super::api_key_middleware::master_api_key_middleware::MasterKeyMiddleware;
+use super::api_key_middleware::phantom_api_key_middleware::PhantomMiddleware;
+use super::api_key_middleware::read_only_key_middleware::ReadOnlyKeyMiddleware;
+
+pub struct ApiKeyGuard {
+    pub master_key: Option<String>,
+    pub read_only_key: Option<String>,
 }
 
-impl ApiKey {
-    pub fn new(api_key: &str) -> Self {
-        Self {
-            api_key: api_key.to_string(),
-        }
-    }
-}
-
-impl<S, B> Transform<S, ServiceRequest> for ApiKey
+impl<S, B: 'static, F> Transform<S, ServiceRequest> for ApiKeyGuard
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<EitherBody<B, BoxBody>>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
+    S: Service<
+        ServiceRequest,
+        Future = F,
+        Response = ServiceResponse<EitherBody<B>>,
+        Error = Error,
+    >,
+    S: 'static,
+    F: Future<
+        Output = Result<
+            <S as Service<ServiceRequest>>::Response,
+            <S as Service<ServiceRequest>>::Error,
+        >,
+    >,
+    F: 'static,
 {
-    type Response = ServiceResponse<EitherBody<B, BoxBody>>;
-    type Error = Error;
+    /// Responses produced by the service.
+    type Response = S::Response;
+    /// Errors produced by the service.
+    type Error = S::Error;
+    /// The `TransformService` value created by this factory
+    type Transform = Box<dyn ApiKeyMiddleware<B>>;
+    /// Errors produced while building a transform service.
     type InitError = ();
-    type Transform = ApiKeyMiddleware<S>;
+    /// The future response value.
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(ApiKeyMiddleware {
-            api_key: self.api_key.clone(),
-            service,
+        let keys = (&self.master_key, &self.read_only_key);
+        ready(Ok(match keys {
+            (Some(master_key), Some(read_only_key)) => Box::new(FullApiKeyMiddleware {
+                master_key: master_key.to_owned(),
+                read_only_key: read_only_key.to_owned(),
+                service,
+                _phantom: Default::default(),
+            }),
+            (Some(master_key), None) => Box::new(MasterKeyMiddleware {
+                master_key: master_key.to_owned(),
+                service,
+                _phantom: Default::default(),
+            }),
+            (None, Some(read_only_key)) => Box::new(ReadOnlyKeyMiddleware {
+                read_only_key: read_only_key.to_owned(),
+                service,
+                _phantom: Default::default(),
+            }),
+            _ => Box::new(PhantomMiddleware {
+                service,
+                _phantom: Default::default(),
+            }),
         }))
     }
 }
 
-pub struct ApiKeyMiddleware<S> {
-    api_key: String,
-    service: S,
-}
-
-impl<S, B> Service<ServiceRequest> for ApiKeyMiddleware<S>
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<EitherBody<B, BoxBody>>, Error = Error>,
-    S::Future: 'static,
-    B: 'static,
+pub trait ApiKeyMiddleware<B>:
+    Service<
+    ServiceRequest,
+    Response = ServiceResponse<EitherBody<B>>,
+    Error = Error,
+    Future = LocalBoxFuture<'static, Result<ServiceResponse<EitherBody<B>>, Error>>,
+>
 {
-    type Response = ServiceResponse<EitherBody<B, BoxBody>>;
-    type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
-
-    forward_ready!(service);
-
-    fn call(&self, req: ServiceRequest) -> Self::Future {
-        if let Some(key) = req.headers().get("api-key") {
-            if let Ok(key) = key.to_str() {
-                if constant_time_eq(self.api_key.as_bytes(), key.as_bytes()) {
-                    return Box::pin(self.service.call(req));
-                }
-            }
-        }
-
-        Box::pin(async {
-            Ok(req
-                .into_response(HttpResponse::Forbidden().body("Invalid api-key"))
-                .map_into_right_body())
-        })
-    }
 }
