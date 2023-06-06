@@ -26,7 +26,8 @@ pub struct ServiceConfig {
     pub enable_tls: bool,
     #[serde(default)]
     pub verify_https_client_certificate: bool,
-    pub api_key: Option<String>,
+    pub master_api_key: Option<String>,
+    pub read_only_api_key: Option<String>
 }
 
 #[derive(Debug, Deserialize, Clone, Default, Validate)]

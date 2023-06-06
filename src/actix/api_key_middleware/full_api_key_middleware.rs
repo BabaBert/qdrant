@@ -38,14 +38,15 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let compare = if req.method() == Method::GET {
-            &self.read_only_key
-        } else {
-            &self.master_key
-        };
         if let Some(key) = req.headers().get("api-key") {
             if let Ok(key) = key.to_str() {
-                if constant_time_eq(compare.as_bytes(), key.as_bytes()) {
+                if req.method() == Method::GET {
+                    if constant_time_eq(self.read_only_key.as_bytes(), key.as_bytes())
+                        || constant_time_eq(self.master_key.as_bytes(), key.as_bytes())
+                    {
+                        return Box::pin(self.service.call(req));
+                    }
+                } else if constant_time_eq(self.master_key.as_bytes(), key.as_bytes()) {
                     return Box::pin(self.service.call(req));
                 }
             }

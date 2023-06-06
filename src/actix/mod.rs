@@ -186,3 +186,200 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod api_test {
+    use actix_web::http::Method;
+    use actix_web::{middleware::Compress, test, web, App, HttpResponse};
+
+    use super::api_key::ApiKeyGuard;
+
+    #[actix_web::test]
+    async fn test_full_key() {
+        let master_key = "1234";
+        let read_key = "abcd";
+
+        let app = test::init_service(
+            App::new()
+                .wrap(Compress::default())
+                .wrap(ApiKeyGuard {
+                    master_key: Some(master_key.to_string()),
+                    read_only_key: Some(read_key.to_string()),
+                })
+                .service(
+                    web::resource("/")
+                        .route(web::get().to(|| HttpResponse::Ok()))
+                        .route(web::post().to(|| HttpResponse::Ok())),
+                ),
+        )
+        .await;
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "abcd"))
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "abcd"))
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_client_error());
+    }
+
+    #[actix_web::test]
+    async fn test_read_key() {
+        let read_key = "abcd";
+
+        let app = test::init_service(
+            App::new()
+                .wrap(Compress::default())
+                .wrap(ApiKeyGuard {
+                    master_key: None,
+                    read_only_key: Some(read_key.to_string()),
+                })
+                .service(
+                    web::resource("/")
+                        .route(web::get().to(|| HttpResponse::Ok()))
+                        .route(web::post().to(|| HttpResponse::Ok())),
+                ),
+        )
+        .await;
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "abcd"))
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "abcd"))
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_client_error());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_client_error());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_client_error());
+    }
+
+    #[actix_web::test]
+    async fn test_master_key() {
+        let master_key = "1234";
+
+        let app = test::init_service(
+            App::new()
+                .wrap(Compress::default())
+                .wrap(ApiKeyGuard {
+                    master_key: Some(master_key.to_string()),
+                    read_only_key: None,
+                })
+                .service(
+                    web::resource("/")
+                        .route(web::get().to(|| HttpResponse::Ok()))
+                        .route(web::post().to(|| HttpResponse::Ok())),
+                ),
+        )
+        .await;
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "abcd"))
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_client_error());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "abcd"))
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_client_error());
+    }
+
+    #[actix_web::test]
+    async fn test_no_key() {
+        let app = test::init_service(
+            App::new()
+                .wrap(Compress::default())
+                .wrap(ApiKeyGuard {
+                    master_key: None,
+                    read_only_key: None,
+                })
+                .service(
+                    web::resource("/")
+                        .route(web::get().to(|| HttpResponse::Ok()))
+                        .route(web::post().to(|| HttpResponse::Ok())),
+                ),
+        )
+        .await;
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .append_header(("api-key", "1234"))
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .method(Method::GET)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::with_uri("/")
+            .method(Method::POST)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+    }
+}
