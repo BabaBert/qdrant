@@ -190,7 +190,8 @@ mod tests {
 #[cfg(test)]
 mod api_test {
     use actix_web::http::Method;
-    use actix_web::{middleware::Compress, test, web, App, HttpResponse};
+    use actix_web::middleware::Compress;
+    use actix_web::{test, web, App, HttpResponse};
 
     use super::api_key::ApiKeyGuard;
 
@@ -208,8 +209,8 @@ mod api_test {
                 })
                 .service(
                     web::resource("/")
-                        .route(web::get().to(|| HttpResponse::Ok()))
-                        .route(web::post().to(|| HttpResponse::Ok())),
+                        .route(web::get().to(HttpResponse::Ok))
+                        .route(web::post().to(HttpResponse::Ok)),
                 ),
         )
         .await;
@@ -256,8 +257,8 @@ mod api_test {
                 })
                 .service(
                     web::resource("/")
-                        .route(web::get().to(|| HttpResponse::Ok()))
-                        .route(web::post().to(|| HttpResponse::Ok())),
+                        .route(web::get().to(HttpResponse::Ok))
+                        .route(web::post().to(HttpResponse::Ok)),
                 ),
         )
         .await;
@@ -304,8 +305,8 @@ mod api_test {
                 })
                 .service(
                     web::resource("/")
-                        .route(web::get().to(|| HttpResponse::Ok()))
-                        .route(web::post().to(|| HttpResponse::Ok())),
+                        .route(web::get().to(HttpResponse::Ok))
+                        .route(web::post().to(HttpResponse::Ok)),
                 ),
         )
         .await;
@@ -350,8 +351,8 @@ mod api_test {
                 })
                 .service(
                     web::resource("/")
-                        .route(web::get().to(|| HttpResponse::Ok()))
-                        .route(web::post().to(|| HttpResponse::Ok())),
+                        .route(web::get().to(HttpResponse::Ok))
+                        .route(web::post().to(HttpResponse::Ok)),
                 ),
         )
         .await;

@@ -87,7 +87,7 @@ pub fn init(
             .option_layer(
                 settings
                     .service
-                    .api_key
+                    .master_api_key
                     .map(api_key::ApiKeyMiddlewareLayer::new),
             )
             .into_inner();
