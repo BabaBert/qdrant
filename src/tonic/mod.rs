@@ -1,6 +1,6 @@
 mod api;
 mod api_key;
-mod api_key_middleware;
+// mod api_key_middleware;
 mod logging;
 mod tonic_telemetry;
 
