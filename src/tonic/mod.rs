@@ -1,5 +1,6 @@
 mod api;
 mod api_key;
+mod api_key_middleware;
 mod logging;
 mod tonic_telemetry;
 
@@ -32,6 +33,7 @@ use crate::tonic::api::collections_internal_api::CollectionsInternalService;
 use crate::tonic::api::points_api::PointsService;
 use crate::tonic::api::points_internal_api::PointsInternalService;
 use crate::tonic::api::snapshots_api::SnapshotsService;
+use crate::tonic::api_key::ApiKeyMiddlewareLayer;
 
 #[derive(Default)]
 pub struct QdrantService {}
@@ -84,12 +86,10 @@ pub fn init(
             .layer(tonic_telemetry::TonicTelemetryLayer::new(
                 telemetry_collector,
             ))
-            .option_layer(
-                settings
-                    .service
-                    .master_api_key
-                    .map(api_key::ApiKeyMiddlewareLayer::new),
-            )
+            .layer(ApiKeyMiddlewareLayer {
+                master_key: settings.service.master_api_key,
+                read_only_key: settings.service.read_only_api_key,
+            })
             .into_inner();
 
         server
@@ -118,6 +118,9 @@ pub fn init(
                     .accept_compressed(CompressionEncoding::Gzip)
                     .max_decoding_message_size(usize::MAX),
             )
+            // where
+            // S: Service<Request<Body>, Response = Response<BoxBody>, Error = Infallible> + NamedService + Clone + Send + 'static,
+            // S::Future: Send + 'static,
             .serve_with_shutdown(socket, async {
                 signal::ctrl_c().await.unwrap();
                 log::debug!("Stopping gRPC");

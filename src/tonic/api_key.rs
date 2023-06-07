@@ -1,85 +1,62 @@
-use std::task::{Context, Poll};
+use std::future::{ready, Ready};
 
-use constant_time_eq::constant_time_eq;
-use futures_util::future::BoxFuture;
-use reqwest::header::HeaderValue;
-use reqwest::StatusCode;
+use actix_web::body::EitherBody;
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
+use actix_web::error::Error;
+use futures_util::future::{BoxFuture, LocalBoxFuture};
+use futures_util::Future;
 use tonic::body::BoxBody;
-use tonic::Code;
-use tower::Service;
+use tonic::codegen::http::{Request, Response};
+use tonic::transport::Body;
 use tower_layer::Layer;
 
-#[derive(Clone)]
-pub struct ApiKeyMiddleware<T> {
-    service: T,
-    api_key: String,
-}
+use super::api_key_middleware::full_api_key_middleware::FullApiKeyMiddleware;
+use super::api_key_middleware::master_api_key_middleware::MasterKeyMiddleware;
+use super::api_key_middleware::phantom_api_key_middleware::PhantomMiddleware;
+use super::api_key_middleware::read_only_key_middleware::ReadOnlyKeyMiddleware;
 
 #[derive(Clone)]
 pub struct ApiKeyMiddlewareLayer {
-    api_key: String,
+    pub master_key: Option<String>,
+    pub read_only_key: Option<String>,
 }
 
-impl<S> Service<tonic::codegen::http::Request<tonic::transport::Body>> for ApiKeyMiddleware<S>
+impl<S> Layer<S> for ApiKeyMiddlewareLayer
 where
-    S: Service<
-        tonic::codegen::http::Request<tonic::transport::Body>,
-        Response = tonic::codegen::http::Response<tonic::body::BoxBody>,
-    >,
+    S: Service<Request<Body>, Response = Response<BoxBody>>,
     S::Future: Send + 'static,
 {
-    type Response = tonic::codegen::http::Response<tonic::body::BoxBody>;
-    type Error = S::Error;
-    type Future = BoxFuture<'static, Result<Self::Response, S::Error>>;
+    type Service = Box<dyn ApiKeyMiddleware<S>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.service.poll_ready(cx)
-    }
-
-    fn call(
-        &mut self,
-        request: tonic::codegen::http::Request<tonic::transport::Body>,
-    ) -> Self::Future {
-        if let Some(key) = request.headers().get("api-key") {
-            if let Ok(key) = key.to_str() {
-                if constant_time_eq(self.api_key.as_bytes(), key.as_bytes()) {
-                    let future = self.service.call(request);
-
-                    return Box::pin(async move {
-                        let response = future.await?;
-                        Ok(response)
-                    });
-                }
-            }
+    fn layer(&self, inner: S) -> Self::Service {
+        match (self.master_key, self.read_only_key) {
+            (Some(master_key), Some(read_only_key)) => Box::new(FullApiKeyMiddleware {
+                master_key: master_key.to_owned(),
+                read_only_key: read_only_key.to_owned(),
+                service: inner,
+            }),
+            (Some(master_key), None) => Box::new(MasterKeyMiddleware {
+                master_key: master_key.to_owned(),
+                service: inner,
+            }),
+            (None, Some(read_only_key)) => Box::new(ReadOnlyKeyMiddleware {
+                read_only_key: read_only_key.to_owned(),
+                service: inner,
+            }),
+            _ => Box::new(PhantomMiddleware { service: inner }),
         }
-
-        let mut response = Self::Response::new(BoxBody::default());
-        *response.status_mut() = StatusCode::FORBIDDEN;
-        response.headers_mut().append(
-            "grpc-status",
-            HeaderValue::from(Code::PermissionDenied as i32),
-        );
-        response
-            .headers_mut()
-            .append("grpc-message", HeaderValue::from_static("Invalid api-key"));
-
-        Box::pin(async move { Ok(response) })
     }
 }
 
-impl ApiKeyMiddlewareLayer {
-    pub fn new(api_key: String) -> Self {
-        Self { api_key }
-    }
-}
-
-impl<S> Layer<S> for ApiKeyMiddlewareLayer {
-    type Service = ApiKeyMiddleware<S>;
-
-    fn layer(&self, service: S) -> Self::Service {
-        ApiKeyMiddleware {
-            service,
-            api_key: self.api_key.clone(),
-        }
-    }
+pub trait ApiKeyMiddleware<S>:
+    Service<
+    Request<Body>,
+    Response = Response<BoxBody>,
+    Error = S::Error,
+    Future = BoxFuture<'static, Result<S::Response, S::Error>>,
+>
+where
+    S: Service<Request<Body>, Response = Response<BoxBody>>,
+    S::Future: Send + 'static,
+{
 }
