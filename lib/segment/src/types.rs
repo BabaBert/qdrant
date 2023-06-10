@@ -164,22 +164,26 @@ pub enum Order {
     SmallBetter,
 }
 
-pub struct OrderBy{
+// #[derive(Debug, Deserialize, Serialize, JsonSchema, Validate, Clone)]
+// #[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
+pub struct OrderBy {
     key: String,
     direction: Direction,
-    offset: u8, //offset for duplicate filter
+    offset: u8, //offset to filter duplicates
 }
 
 #[repr(u8)]
-#[derive(Default)]
-pub enum Direction{
+// #[derive(Debug, Default, Deserialize, Serialize, JsonSchema, Clone)]
+#[derive(Debug, Default, Deserialize, Serialize, JsonSchema, Clone)]
+pub enum Direction {
     #[default]
     ASC, //ascending
-    DESC //descending
+    DESC, //descending
 }
 
 /// Search result
-#[derive(Deserialize, Serialize, JsonSchema, Clone, Debug)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
 pub struct ScoredPoint {
     /// Point id
     pub id: PointIdType,

@@ -991,6 +991,7 @@ impl Collection {
         let default_request = ScrollRequest::default();
 
         let offset = request.offset;
+        let order_by = request.order_by;
         let limit = request
             .limit
             .unwrap_or_else(|| default_request.limit.unwrap());
@@ -1019,6 +1020,7 @@ impl Collection {
                     &with_vector,
                     request.filter.as_ref(),
                     read_consistency,
+                    &order_by,
                 )
             });
 
