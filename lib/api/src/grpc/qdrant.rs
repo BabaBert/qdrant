@@ -2943,7 +2943,41 @@ pub struct ScrollPoints {
     /// Options for specifying read consistency guarantees
     #[prost(message, optional, tag = "8")]
     pub read_consistency: ::core::option::Option<ReadConsistency>,
+    #[prost(message, optional, tag = "9")]
+    pub order_by: ::core::option::Option<OrderBy>,
 }
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OrderBy {
+    #[prost(string, tag="1")]
+    pub key: String,
+    #[prost(enumeration="Direction", tag="2")]
+    pub direction: i32,
+    #[prost(uint32, optional, tag="3")]
+    pub offset: ::core::option::Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Direction {
+    ASC = 0, //ascending
+    DESC = 1, //descending
+}
+
+impl From<segment::types::OrderBy> for OrderBy{
+    fn from(other: segment::types::OrderBy) -> OrderBy{
+        OrderBy{
+            key: other.key,
+            direction: match other.direction{
+                segment::types::Direction::ASC => Direction::ASC as i32,
+                segment::types::Direction::DESC => Direction::DESC as i32
+            },
+            offset: other.offset.map(Into::into)
+        }
+    }
+}
+
+
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LookupLocation {
@@ -8624,4 +8658,5 @@ pub mod qdrant_server {
         const NAME: &'static str = "qdrant.Qdrant";
     }
 }
+
 use super::validate::ValidateExt;

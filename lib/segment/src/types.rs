@@ -168,9 +168,9 @@ pub enum Order {
 // #[derive(Debug)]
 #[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
 pub struct OrderBy {
-    key: String,
-    direction: Direction,
-    offset: u8, //offset to filter duplicates
+    pub key: String,
+    pub direction: Direction,
+    pub offset: Option<u16>, //offset
 }
 
 #[repr(u8)]
@@ -180,6 +180,15 @@ pub enum Direction {
     #[default]
     ASC, //ascending
     DESC, //descending
+}
+
+type OffsetValue = u16;
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
+pub enum Offset{
+    Offset(OffsetValue),
+    Min(OffsetValue),
+    Max(OffsetValue)
 }
 
 /// Search result
