@@ -170,7 +170,7 @@ pub enum Order {
 pub struct OrderBy {
     pub key: String,
     pub direction: Direction,
-    pub offset: Option<u16>, //offset
+    pub offset: Option<u32>, //offset
 }
 
 #[repr(u8)]
