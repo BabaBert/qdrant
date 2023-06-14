@@ -164,8 +164,6 @@ pub enum Order {
     SmallBetter,
 }
 
-// #[derive(Debug, Deserialize, Serialize, JsonSchema, Validate, Clone)]
-// #[derive(Debug)]
 #[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
 pub struct OrderBy {
     pub key: String,

@@ -2790,6 +2790,19 @@ impl From<segment::types::OrderBy> for OrderBy {
         }
     }
 }
+impl From<OrderBy> for segment::types::OrderBy{
+    fn from(value: OrderBy) -> Self {
+        segment::types::OrderBy{
+            key: value.key,
+            direction: match value.direction{
+                x if x == Direction::ASC as i32 => segment::types::Direction::ASC,
+                x if x == Direction::DESC as i32 => segment::types::Direction::DESC,
+                i => panic!("Received undefined enum variant: {i}")
+            },
+            offset: value.offset,
+        }
+    }
+}
 
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
