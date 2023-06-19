@@ -420,7 +420,7 @@ impl ShardOperation for RemoteShard {
             .await
     }
 
-    //TODO
+    //TODO: RemoteShard
     async fn scroll_by(
         &self,
         offset: Option<ExtendedPointId>,

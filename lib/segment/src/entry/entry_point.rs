@@ -18,7 +18,7 @@ use crate::telemetry::SegmentTelemetry;
 use crate::types::{
     Filter, Payload, PayloadFieldSchema, PayloadKeyType, PayloadKeyTypeRef, PointIdType,
     ScoredPoint, SearchParams, SegmentConfig, SegmentInfo, SegmentType, SeqNumberType, WithPayload,
-    WithVector,
+    WithVector, OrderBy,
 };
 use crate::utils::mem::Mem;
 
@@ -286,11 +286,12 @@ pub trait SegmentEntry {
     fn iter_points(&self) -> Box<dyn Iterator<Item = PointIdType> + '_>;
 
     /// Paginate over points which satisfies filtering condition starting with `offset` id including.
-    fn read_filtered<'a>(
-        &'a self,
+    fn read_filtered(
+        &self,
         offset: Option<PointIdType>,
         limit: Option<usize>,
-        filter: Option<&'a Filter>,
+        filter: Option<&Filter>,
+        order_by: &Option<OrderBy>,
     ) -> Vec<PointIdType>;
 
     /// Read points in [from; to) range

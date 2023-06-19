@@ -4,11 +4,13 @@ use std::time::Instant;
 use chrono::{NaiveDateTime, Timelike};
 use segment::data_types::text_index::TextIndexType;
 use segment::data_types::vectors::VectorElementType;
-use segment::types::{default_quantization_ignore_value, default_quantization_rescore_value};
+use segment::types::{
+    default_quantization_ignore_value, default_quantization_rescore_value, Direction, Order,
+};
 use tonic::Status;
 use uuid::Uuid;
 
-use super::qdrant::CompressionRatio;
+use super::qdrant::{CompressionRatio, OrderBy};
 use crate::grpc::models::{CollectionsResponse, VersionInfo};
 use crate::grpc::qdrant::condition::ConditionOneOf;
 use crate::grpc::qdrant::payload_index_params::IndexParams;
@@ -659,6 +661,32 @@ impl From<segment::types::Filter> for Filter {
             should: conditions_helper_to_grpc(value.should),
             must: conditions_helper_to_grpc(value.must),
             must_not: conditions_helper_to_grpc(value.must_not),
+        }
+    }
+}
+
+impl From<segment::types::OrderBy> for OrderBy {
+    fn from(value: segment::types::OrderBy) -> Self {
+        Self {
+            key: value.key,
+            direction: Some(match value.direction {
+                Direction::ASC => false,
+                Direction::DESC => true,
+            }),
+            offset: value.offset,
+        }
+    }
+}
+
+impl From<OrderBy> for segment::types::OrderBy {
+    fn from(value: OrderBy) -> Self {
+        Self {
+            key: value.key,
+            direction: value.direction.map_or_else(Default::default, |d| match d{
+                true => Direction::DESC,
+                false => Direction::ASC,
+            }),
+            offset: value.offset,
         }
     }
 }

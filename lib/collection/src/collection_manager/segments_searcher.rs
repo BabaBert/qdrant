@@ -301,6 +301,15 @@ impl SegmentsSearcher {
         })?;
         Ok(point_records.into_values().collect())
     }
+
+    //TODO: retrieve?
+    // pub async fn retrieve_generic(
+    //     segments: &RwLock<SegmentHolder>,
+    //     points: &[u32],
+    //     with_payload: &WithPayload,
+    //     with_vector: &WithVector,
+    // ) -> CollectionResult<Vec<Record>> {
+    // }
 }
 
 #[derive(PartialEq, Default)]

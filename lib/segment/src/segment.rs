@@ -29,7 +29,7 @@ use crate::telemetry::SegmentTelemetry;
 use crate::types::{
     Filter, Payload, PayloadFieldSchema, PayloadIndexInfo, PayloadKeyType, PayloadKeyTypeRef,
     PayloadSchemaType, PointIdType, PointOffsetType, ScoredPoint, SearchParams, SegmentConfig,
-    SegmentInfo, SegmentState, SegmentType, SeqNumberType, WithPayload, WithVector,
+    SegmentInfo, SegmentState, SegmentType, SeqNumberType, WithPayload, WithVector, OrderBy,
 };
 use crate::utils;
 use crate::vector_storage::{ScoredPointOffset, VectorStorage, VectorStorageEnum};
@@ -559,6 +559,7 @@ impl Segment {
             .collect()
     }
 
+    //TODO: ?
     pub fn filtered_read_by_index(
         &self,
         offset: Option<PointIdType>,
@@ -970,11 +971,13 @@ impl SegmentEntry for Segment {
         unsafe { self.id_tracker.as_ptr().as_ref().unwrap().iter_external() }
     }
 
+    //TODO
     fn read_filtered<'a>(
         &'a self,
         offset: Option<PointIdType>,
         limit: Option<usize>,
         filter: Option<&'a Filter>,
+        order_by: &Option<OrderBy>,
     ) -> Vec<PointIdType> {
         match filter {
             None => self
@@ -1295,7 +1298,7 @@ impl SegmentEntry for Segment {
         filter: &'a Filter,
     ) -> OperationResult<usize> {
         let mut deleted_points = 0;
-        for point_id in self.read_filtered(None, None, Some(filter)) {
+        for point_id in self.read_filtered(None, None, Some(filter), &None) {
             deleted_points += self.delete_point(op_num, point_id)? as usize;
         }
 

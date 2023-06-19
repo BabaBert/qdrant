@@ -801,6 +801,7 @@ impl ShardReplicaSet {
         captured_error.expect("at this point `captured_error` must be defined by construction")
     }
 
+    //TODO: magic
     pub async fn execute_and_resolve_read_operation<'a, F, Fut, Res>(
         &self,
         read_operation: F,
@@ -1481,6 +1482,7 @@ impl ShardReplicaSet {
         Ok(res)
     }
 
+    //TODO
     #[allow(clippy::too_many_arguments)]
     pub async fn scroll_by(
         &self,
