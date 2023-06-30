@@ -183,10 +183,10 @@ pub enum Direction {
 type OffsetValue = u16;
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema, Clone)]
-pub enum Offset{
+pub enum Offset {
     Offset(OffsetValue),
     Min(OffsetValue),
-    Max(OffsetValue)
+    Max(OffsetValue),
 }
 
 /// Search result

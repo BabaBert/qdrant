@@ -10,9 +10,9 @@ use segment::entry::entry_point::{OperationResult, SegmentEntry, SegmentFailedSt
 use segment::index::field_index::CardinalityEstimation;
 use segment::telemetry::SegmentTelemetry;
 use segment::types::{
-    Condition, Filter, Payload, PayloadFieldSchema, PayloadKeyType, PayloadKeyTypeRef, PointIdType,
-    ScoredPoint, SearchParams, SegmentConfig, SegmentInfo, SegmentType, SeqNumberType, WithPayload,
-    WithVector, OrderBy,
+    Condition, Filter, OrderBy, Payload, PayloadFieldSchema, PayloadKeyType, PayloadKeyTypeRef,
+    PointIdType, ScoredPoint, SearchParams, SegmentConfig, SegmentInfo, SegmentType, SeqNumberType,
+    WithPayload, WithVector,
 };
 
 use crate::collection_manager::holders::segment_holder::LockedSegment;
@@ -460,7 +460,7 @@ impl SegmentEntry for ProxySegment {
         offset: Option<PointIdType>,
         limit: Option<usize>,
         filter: Option<&'a Filter>,
-        order_by: &Option<OrderBy>
+        order_by: &Option<OrderBy>,
     ) -> Vec<PointIdType> {
         let deleted_points = self.deleted_points.read();
         let mut read_points = if deleted_points.is_empty() {
@@ -471,10 +471,12 @@ impl SegmentEntry for ProxySegment {
         } else {
             let wrapped_filter =
                 self.add_deleted_points_condition_to_filter(filter, &deleted_points);
-            self.wrapped_segment
-                .get()
-                .read()
-                .read_filtered(offset, limit, Some(&wrapped_filter), order_by)
+            self.wrapped_segment.get().read().read_filtered(
+                offset,
+                limit,
+                Some(&wrapped_filter),
+                order_by,
+            )
         };
         let mut write_segment_points = self
             .write_segment
@@ -1036,10 +1038,11 @@ mod tests {
             "blue".to_string().into(),
         )));
 
-        let original_points = original_segment
-            .get()
-            .read()
-            .read_filtered(None, Some(100), None, todo!());
+        let original_points =
+            original_segment
+                .get()
+                .read()
+                .read_filtered(None, Some(100), None, todo!());
 
         let original_points_filtered =
             original_segment
@@ -1052,7 +1055,8 @@ mod tests {
         proxy_segment.delete_point(100, 2.into()).unwrap();
 
         let proxy_res = proxy_segment.read_filtered(None, Some(100), None, todo!());
-        let proxy_res_filtered = proxy_segment.read_filtered(None, Some(100), Some(&filter), todo!());
+        let proxy_res_filtered =
+            proxy_segment.read_filtered(None, Some(100), Some(&filter), todo!());
 
         assert_eq!(original_points_filtered.len() - 1, proxy_res_filtered.len());
         assert_eq!(original_points.len() - 1, proxy_res.len());

@@ -682,7 +682,7 @@ impl From<OrderBy> for segment::types::OrderBy {
     fn from(value: OrderBy) -> Self {
         Self {
             key: value.key,
-            direction: value.direction.map_or_else(Default::default, |d| match d{
+            direction: value.direction.map_or_else(Default::default, |d| match d {
                 true => Direction::DESC,
                 false => Direction::ASC,
             }),

@@ -438,7 +438,7 @@ impl ShardOperation for RemoteShard {
             with_payload: Some(with_payload_interface.clone().into()),
             with_vectors: Some(with_vector.clone().into()),
             read_consistency: None,
-            order_by: order_by.as_ref().map(|o| o.clone().into())
+            order_by: order_by.as_ref().map(|o| o.clone().into()),
         };
         let request = &ScrollPointsInternal {
             scroll_points: Some(scroll_points),

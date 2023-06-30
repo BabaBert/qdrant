@@ -27,9 +27,9 @@ use crate::index::{PayloadIndex, VectorIndex, VectorIndexEnum};
 use crate::spaces::tools::peek_top_smallest_iterable;
 use crate::telemetry::SegmentTelemetry;
 use crate::types::{
-    Filter, Payload, PayloadFieldSchema, PayloadIndexInfo, PayloadKeyType, PayloadKeyTypeRef,
-    PayloadSchemaType, PointIdType, PointOffsetType, ScoredPoint, SearchParams, SegmentConfig,
-    SegmentInfo, SegmentState, SegmentType, SeqNumberType, WithPayload, WithVector, OrderBy,
+    Filter, OrderBy, Payload, PayloadFieldSchema, PayloadIndexInfo, PayloadKeyType,
+    PayloadKeyTypeRef, PayloadSchemaType, PointIdType, PointOffsetType, ScoredPoint, SearchParams,
+    SegmentConfig, SegmentInfo, SegmentState, SegmentType, SeqNumberType, WithPayload, WithVector,
 };
 use crate::utils;
 use crate::vector_storage::{ScoredPointOffset, VectorStorage, VectorStorageEnum};
