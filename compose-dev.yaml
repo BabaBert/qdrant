@@ -1,11 +1,18 @@
-version: "3.8"
 services:
   debian:
     build:
       context: .
       dockerfile: .docker/Dockerfile
+    entrypoint:
+    - sleep
+    - infinity
+    image: docker/dev-environments-default:stable-1
+    init: true
+    volumes:
+    - type: bind
+      source: /var/run/docker.sock
+      target: /var/run/docker.sock
     ports:
-      - 6333:6333
-      - 6334:6334
-    volumes: 
-      - .:/app
+    - 6333:6333
+    - 6334:6334
+
